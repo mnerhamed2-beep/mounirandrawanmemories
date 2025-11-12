@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>mounirandrawanmemories</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--muted:#666;--accent:#2b6df6}
+    *{box-sizing:border-box}
+    body{font-family:'Tajawal',sans-serif;direction:rtl;background:var(--bg);margin:0;padding:0;color:#222}
+    header{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;background:linear-gradient(135deg,var(--accent),#6ea8ff);color:#fff;position:relative}
+    header h1{margin:0;font-size:32px;font-weight:700;letter-spacing:1px}
+    header p{margin-top:10px;font-size:16px;max-width:600px;line-height:1.6}
+    .logo{width:90px;height:90px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--accent);font-size:36px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+    main{max-width:980px;margin:20px auto;padding:20px}
+    .uploader{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(20,20,60,.06)}
+    label{display:block;margin-bottom:8px;font-weight:600}
+    input[type="file"]{display:block}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1 1 220px;min-width:220px}
+    input[type=text],textarea,input[type=date]{width:100%;padding:10px;border-radius:8px;border:1px solid #e3e6ef}
+    textarea{min-height:80px;resize:vertical}
+    button{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background .2s}
+    button:hover{background:#174dcf}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:18px}
+    .card{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(20,20,60,.06);display:flex;flex-direction:column;transition:transform .2s}
+    .card:hover{transform:translateY(-4px)}
+    .card img{width:100%;height:180px;object-fit:cover}
+    .card-body{padding:10px;display:flex;flex-direction:column;gap:6px}
+    .meta{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:6px}
+    .btn-ghost{background:transparent;color:var(--accent);border:1px solid #e6eefc;padding:6px;border-radius:8px;cursor:pointer}
+    .btn-ghost:hover{background:#eef3ff}
+    .empty{padding:40px;text-align:center;color:var(--muted)}
+    footer{margin-top:30px;text-align:center;color:var(--muted);font-size:13px;padding:20px}
+    @media (max-width:600px){.row{flex-direction:column}header h1{font-size:26px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">M</div>
+    <h1>mounirandrawanmemories</h1>
+    <p>مرحباً بكم في حائط الذكريات — مكانكم المفضل لتخزين أجمل اللحظات والصور التي لا تُنسى. يمكنكم رفع صوركم مع كتابة ذكرى وتاريخ النشر، وستظل محفوظة في متصفحكم للأبد ❤️</p>
+  </header>
+
+  <main>
+    <section class="uploader" aria-label="رفع ذكرى">
+      <form id="form">
+        <div class="row">
+          <div class="col">
+            <label for="image">اختر صورة</label>
+            <input id="image" type="file" accept="image/*" required />
+            <div style="margin-top:8px;font-size:13px;color:var(--muted)">يمكن سحب وإفلات الصورة إلى هنا</div>
+          </div>
+
+          <div class="col">
+            <label for="caption">الذكرى (نص)</label>
+            <textarea id="caption" placeholder="اكتب ذكرياتك هنا ..." required></textarea>
+            <label for="date" style="margin-top:8px">تاريخ النشر</label>
+            <input id="date" type="date" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button type="submit">نشر الذكرى</button>
+          <button type="button" id="clearAll" class="btn-ghost">حذف الكل</button>
+          <button type="button" id="exportBtn" class="btn-ghost">تصدير JSON</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="wall" class="grid" aria-live="polite"></section>
+
+    <div id="empty" class="empty" style="display:none">لا توجد ذكريات بعد — أضف أول ذكرى الآن</div>
+  </main>
+
+  <footer>© 2025 mounirandrawanmemories — تم الإنشاء بمساعدة GPT-5 | يمكنك حفظ هذا الملف وتشغيله مجاناً أو استضافته على GitHub Pages.</footer>
+
+  <script>
+    const form = document.getElementById('form')
+    const imageInput = document.getElementById('image')
+    const captionInput = document.getElementById('caption')
+    const dateInput = document.getElementById('date')
+    const wall = document.getElementById('wall')
+    const empty = document.getElementById('empty')
+    const clearAll = document.getElementById('clearAll')
+    const exportBtn = document.getElementById('exportBtn')
+
+    const STORAGE_KEY = 'mounirandrawanmemories.posts.v1'
+
+    dateInput.valueAsDate = new Date()
+
+    function loadPosts(){
+      try{return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')}catch(e){return []}
+    }
+
+    function savePosts(posts){localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))}
+
+    function render(){
+      const posts = loadPosts()
+      wall.innerHTML = ''
+      if(!posts.length){ empty.style.display = 'block'; return }
+      empty.style.display = 'none'
+      posts.slice().reverse().forEach((p, idx) => {
+        const card = document.createElement('article')
+        card.className = 'card'
+        const img = document.createElement('img')
+        img.src = p.dataUrl
+        img.alt = p.caption || 'ذاكرة'
+        const body = document.createElement('div')
+        body.className = 'card-body'
+        const cap = document.createElement('div')
+        cap.textContent = p.caption
+        const meta = document.createElement('div')
+        meta.className = 'meta'
+        meta.textContent = 'نشر في: ' + new Date(p.publishedAt).toLocaleString('ar-EG')
+        const controls = document.createElement('div')
+        controls.className = 'controls'
+        const del = document.createElement('button')
+        del.className = 'btn-ghost'
+        del.textContent = 'حذف'
+        del.onclick = () => {
+          if(!confirm('هل تريد حذف هذه الذكرى؟')) return
+          const all = loadPosts()
+          const realIndex = all.length - 1 - idx
+          all.splice(realIndex,1)
+          savePosts(all)
+          render()
+        }
+        const download = document.createElement('button')
+        download.className = 'btn-ghost'
+        download.textContent = 'تحميل الصورة'
+        download.onclick = () => {
+          const a=document.createElement('a');a.href=p.dataUrl; a.download = 'memory-' + new Date(p.publishedAt).toISOString().slice(0,10)+'.png'; a.click();
+        }
+        controls.appendChild(del)
+        controls.appendChild(download)
+        body.appendChild(cap)
+        body.appendChild(meta)
+        body.appendChild(controls)
+        card.appendChild(img)
+        card.appendChild(body)
+        wall.appendChild(card)
+      })
+    }
+
+    form.addEventListener('submit', async (e) =>{
+      e.preventDefault()
+      const file = imageInput.files && imageInput.files[0]
+      if(!file){alert('اختر صورة أولاً'); return}
+      const caption = captionInput.value.trim()
+      if(!caption){alert('أضف نص للذكرى'); return}
+      const date = dateInput.value ? new Date(dateInput.value + 'T00:00:00') : new Date()
+      const dataUrl = await readFileAsDataURL(file)
+      const posts = loadPosts()
+      posts.push({ id: Date.now()+Math.random().toString(36).slice(2,8), caption, dataUrl, publishedAt: date.toISOString() })
+      savePosts(posts)
+      form.reset()
+      dateInput.valueAsDate = new Date()
+      render()
+    })
+
+    function readFileAsDataURL(file){
+      return new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file)
+      })
+    }
+
+    clearAll.addEventListener('click', ()=>{
+      if(!confirm('حذف كل الذكريات سيؤدي لفقدانها نهائيًا — المتابعة؟')) return
+      localStorage.removeItem(STORAGE_KEY)
+      render()
+    })
+
+    exportBtn.addEventListener('click', ()=>{
+      const posts = loadPosts()
+      const blob = new Blob([JSON.stringify(posts, null, 2)], {type:'application/json'})
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mounirandrawanmemories-export.json'; a.click();
+    })
+
+    const dropArea = imageInput
+    ;['dragenter','dragover','dragleave','drop'].forEach(ev => {
+      dropArea.addEventListener(ev, (e)=>{e.preventDefault(); e.stopPropagation()})
+    })
+    dropArea.addEventListener('drop', (e)=>{
+      const dt = e.dataTransfer
+      if(dt && dt.files && dt.files[0]){
+        imageInput.files = dt.files
+      }
+    })
+
+    render()
+  </script>
+</body>
+</html>
